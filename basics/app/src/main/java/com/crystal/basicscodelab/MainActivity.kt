@@ -3,9 +3,15 @@ package com.crystal.basicscodelab
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,7 +64,7 @@ fun OnboardingPreview() {
 @Composable
 fun MyApp(modifier: Modifier = Modifier) {
 
-    var shouldShowOnboarding by remember {
+    var shouldShowOnboarding by rememberSaveable {
         mutableStateOf(true)
     }
     Surface(
@@ -76,12 +82,11 @@ fun MyApp(modifier: Modifier = Modifier) {
 
 @Composable
 private fun Greetings(modifier: Modifier = Modifier,
-                      names: List<String> = listOf("World", "Compose")) {
+                      names: List<String> = List(1000) { "$it" }) {
 
-    Column(modifier = Modifier.padding(vertical = 4.dp)) {
-        for (name in names) {
-            var isExpaned by remember { mutableStateOf(false) }
-            Greeting(name, isExpaned) { isExpaned = !it }
+    LazyColumn(modifier = Modifier.padding(vertical = 4.dp)) {
+        items(items = names) { name ->
+            Greeting(name = name)
         }
     }
 }
@@ -95,11 +100,16 @@ private fun GreetingsPreview() {
 }
 
 @Composable
-fun Greeting(name: String, isExpaned: Boolean, onClickButton: (Boolean)->Unit) {
+fun Greeting(name: String) {
 
-
-    val extraPadding = if (isExpaned) 48.dp else 0.dp
-
+    var isExpaned by remember { mutableStateOf(false) }
+    val extraPadding by animateDpAsState(
+        if (isExpaned) 48.dp else 0.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
+    )
     Surface(
         color = MaterialTheme.colorScheme.primary
         , modifier = Modifier
@@ -110,14 +120,14 @@ fun Greeting(name: String, isExpaned: Boolean, onClickButton: (Boolean)->Unit) {
         Row(verticalAlignment = Alignment.CenterVertically
             , modifier = Modifier
                 .padding(24.dp)
-                .padding(bottom = extraPadding)){
+                .padding(bottom = extraPadding.coerceAtLeast(0.dp))){
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = "Hello")
                 Text(text = "$name!")
             }
 
-            ElevatedButton(onClick = { onClickButton(isExpaned) }, modifier = Modifier
+            ElevatedButton(onClick = { isExpaned = !isExpaned }, modifier = Modifier
             ) {
                 val textOnButton = if (isExpaned) "Show less" else "show more"
                 Text( text = textOnButton, color = MaterialTheme.colorScheme.secondary)
